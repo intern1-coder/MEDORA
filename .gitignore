@@ -1,0 +1,45 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# TypeScript build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test coverage & outputs
+coverage/
+.nyc_output/
+test-results/
+
+# Temporary generated files & file uploads
+uploads/
+storage/
+temp_pdfs/
+*.tmp
+
+# Browser automation binaries & caches (Playwright / Puppeteer)
+.cache/
+.playwright/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# IDE configurations
+.idea/
+*.sublime-project
+*.sublime-workspace

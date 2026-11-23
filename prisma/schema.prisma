@@ -191,17 +191,26 @@ model User {
 }
 
 model RefreshToken {
-  id         String   @id @default(uuid()) @db.Uuid
-  userId     String   @map("user_id") @db.Uuid
-  tokenHash  String   @map("token_hash") @db.VarChar(255)
-  deviceInfo String?  @map("device_info") @db.VarChar(255)
-  isRevoked  Boolean  @default(false) @map("is_revoked")
-  expiresAt  DateTime @map("expires_at") @db.Timestamptz
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String        @id @default(uuid()) @db.Uuid
+  userId               String        @map("user_id") @db.Uuid
+  familyId             String        @default(uuid()) @map("family_id") @db.Uuid
+  tokenHash            String        @unique @map("token_hash") @db.VarChar(255)
+  deviceInfo           String?       @map("device_info") @db.VarChar(255)
+  isRevoked            Boolean       @default(false) @map("is_revoked")
+  revokedAt            DateTime?     @map("revoked_at") @db.Timestamptz
+  replacedByTokenId    String?       @unique @map("replaced_by_token_id") @db.Uuid
+
+
+  expiresAt            DateTime      @map("expires_at") @db.Timestamptz
+  createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedBy           RefreshToken? @relation("TokenReplacement", fields: [replacedByTokenId], references: [id])
+  replaces             RefreshToken? @relation("TokenReplacement")
 
   @@index([userId])
+  @@index([familyId])
   @@index([tokenHash])
   @@map("refresh_tokens")
 }
@@ -214,8 +223,57 @@ model MRNSequence {
   @@map("mrn_sequences")
 }
 
-// ============================================================================
-// 3. HOSPITAL FACILITIES AND DOCTOR PROFILES
+model Appointment {
+  id           String          @id @default(uuid()) @db.Uuid
+  clinicId     String          @map("clinic_id") @db.Uuid
+  doctorId     String          @map("doctor_id") @db.Uuid
+  patientId    String          @map("patient_id") @db.Uuid
+  roomId       String?         @map("room_id") @db.Uuid
+  startsAt     DateTime        @map("starts_at") @db.Timestamptz
+  endsAt       DateTime        @map("ends_at") @db.Timestamptz
+  status       AppointmentStatus @default(SCHEDULED)
+  notes        String?         @db.Text
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations (optional, no foreign key constraints to keep mockable)
+  doctor   User @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  patient  User @relation("PatientAppointments", fields: [patientId], references: [id])
+  clinic   Department @relation(fields: [clinicId], references: [id])
+
+  @@index([doctorId])
+  @@index([patientId])
+  @@index([clinicId])
+  @@index([startsAt, endsAt])
+  @@index([status])
+  @@map("appointments")
+}
+
+model QueueEntry {
+  id            String      @id @default(uuid()) @db.Uuid
+  clinicId      String      @map("clinic_id") @db.Uuid
+  doctorId      String?     @map("doctor_id") @db.Uuid
+  patientId     String      @map("patient_id") @db.Uuid
+  position      Int         @map("position")
+  priority      Int         @default(0) @map("priority")
+  status        QueueStatus @default(WAITING)
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  servedAt      DateTime?   @map("served_at") @db.Timestamptz
+
+  // Relations (optional)
+  clinic   Department @relation(fields: [clinicId], references: [id])
+  doctor   User?      @relation("DoctorQueueEntries", fields: [doctorId], references: [id])
+  patient  User       @relation("PatientQueueEntries", fields: [patientId], references: [id])
+
+  @@index([clinicId])
+  @@index([doctorId])
+  @@index([patientId])
+  @@index([status])
+  @@index([priority, position])
+  @@map("queue_entries")
+}
+
 // ============================================================================
 
 model Department {
